@@ -6,4 +6,4 @@ node_modules/
 *-e
 # Vim swap files.
 *.swp
-
+**/*Dockerfile
