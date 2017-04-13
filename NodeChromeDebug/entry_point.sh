@@ -20,10 +20,9 @@ function shutdown {
   wait $NODE_PID
 }
 
-REMOTE_HOST_PARAM=""
 if [ ! -z "$REMOTE_HOST" ]; then
-  echo "REMOTE_HOST variable is set, appending -remoteHost"
-  REMOTE_HOST_PARAM="-remoteHost $REMOTE_HOST"
+  >&2 echo "REMOTE_HOST variable is *DEPRECATED* in these docker containers.  Please use SE_OPTS=\"-host <host> -port <port>\" instead!"
+  exit 1
 fi
 
 if [ ! -z "$SE_OPTS" ]; then
@@ -37,15 +36,14 @@ SERVERNUM=$(get_server_num)
 rm -f /tmp/.X*lock
 
 env | cut -f 1 -d "=" | sort > asroot
-  sudo -E -u seluser -i env | cut -f 1 -d "=" | sort > asseluser
-  sudo -E -i -u seluser \
-  $(for E in $(grep -vxFf asseluser asroot); do echo $E=$(eval echo \$$E); done) \
+sudo -E -u seluser -i env | cut -f 1 -d "=" | sort > asseluser
+sudo -E -i -u seluser \
+  "$(for E in $(grep -vxFf asseluser asroot); do echo $E=$(eval echo \$$E); done)" \
   DISPLAY=$DISPLAY \
   xvfb-run -n $SERVERNUM --server-args="-screen 0 $GEOMETRY -ac +extension RANDR" \
   java ${JAVA_OPTS} -jar /opt/selenium/selenium-server-standalone.jar \
     -role node \
     -hub http://$HUB_PORT_4444_TCP_ADDR:$HUB_PORT_4444_TCP_PORT/grid/register \
-    ${REMOTE_HOST_PARAM} \
     -nodeConfig /opt/selenium/config.json \
     ${SE_OPTS} &
 NODE_PID=$!

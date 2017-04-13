@@ -1,15 +1,19 @@
 NAME := selenium
-VERSION := $(or $(VERSION),$(VERSION),'3.0.0-cerium')
+VERSION := $(or $(VERSION),$(VERSION),3.3.1-arsenic)
 PLATFORM := $(shell uname -s)
 BUILD_ARGS := $(BUILD_ARGS)
+MAJOR := $(word 1,$(subst ., ,$(VERSION)))
+MINOR := $(word 2,$(subst ., ,$(VERSION)))
+MAJOR_MINOR_PATCH := $(word 1,$(subst -, ,$(VERSION)))
 
-all: hub chrome firefox chrome_debug firefox_debug standalone_chrome standalone_firefox standalone_chrome_debug standalone_firefox_debug
+all: hub chrome firefox phantomjs chrome_debug firefox_debug standalone_chrome standalone_firefox standalone_chrome_debug standalone_firefox_debug
 
 generate_all:	\
 	generate_hub \
 	generate_nodebase \
 	generate_chrome \
 	generate_firefox \
+	generate_phantomjs \
 	generate_chrome_debug \
 	generate_firefox_debug \
 	generate_standalone_firefox \
@@ -84,12 +88,19 @@ generate_firefox_debug:
 firefox_debug: generate_firefox_debug firefox
 	cd ./NodeFirefoxDebug && docker build $(BUILD_ARGS) -t $(NAME)/node-firefox-debug:$(VERSION) .
 
+generate_phantomjs:
+	cd ./NodePhantomJS && ./generate.sh $(VERSION)
+
+phantomjs: nodebase generate_phantomjs
+	cd ./NodePhantomJS && docker build $(BUILD_ARGS) -t $(NAME)/node-phantomjs:$(VERSION) .
+
 tag_latest:
 	docker tag $(NAME)/base:$(VERSION) $(NAME)/base:latest
 	docker tag $(NAME)/hub:$(VERSION) $(NAME)/hub:latest
 	docker tag $(NAME)/node-base:$(VERSION) $(NAME)/node-base:latest
 	docker tag $(NAME)/node-chrome:$(VERSION) $(NAME)/node-chrome:latest
 	docker tag $(NAME)/node-firefox:$(VERSION) $(NAME)/node-firefox:latest
+	docker tag $(NAME)/node-phantomjs:$(VERSION) $(NAME)/node-phantomjs:latest
 	docker tag $(NAME)/node-chrome-debug:$(VERSION) $(NAME)/node-chrome-debug:latest
 	docker tag $(NAME)/node-firefox-debug:$(VERSION) $(NAME)/node-firefox-debug:latest
 	docker tag $(NAME)/standalone-chrome:$(VERSION) $(NAME)/standalone-chrome:latest
@@ -97,12 +108,65 @@ tag_latest:
 	docker tag $(NAME)/standalone-chrome-debug:$(VERSION) $(NAME)/standalone-chrome-debug:latest
 	docker tag $(NAME)/standalone-firefox-debug:$(VERSION) $(NAME)/standalone-firefox-debug:latest
 
-release:
+release_latest:
+	docker push $(NAME)/base:latest
+	docker push $(NAME)/hub:latest
+	docker push $(NAME)/node-base:latest
+	docker push $(NAME)/node-chrome:latest
+	docker push $(NAME)/node-firefox:latest
+	docker push $(NAME)/node-phantomjs:latest
+	docker push $(NAME)/node-chrome-debug:latest
+	docker push $(NAME)/node-firefox-debug:latest
+	docker push $(NAME)/standalone-chrome:latest
+	docker push $(NAME)/standalone-firefox:latest
+	docker push $(NAME)/standalone-chrome-debug:latest
+	docker push $(NAME)/standalone-firefox-debug:latest
+
+tag_major_minor:
+	docker tag $(NAME)/base:$(VERSION) $(NAME)/base:$(MAJOR)
+	docker tag $(NAME)/hub:$(VERSION) $(NAME)/hub:$(MAJOR)
+	docker tag $(NAME)/node-base:$(VERSION) $(NAME)/node-base:$(MAJOR)
+	docker tag $(NAME)/node-chrome:$(VERSION) $(NAME)/node-chrome:$(MAJOR)
+	docker tag $(NAME)/node-firefox:$(VERSION) $(NAME)/node-firefox:$(MAJOR)
+	docker tag $(NAME)/node-phantomjs:$(VERSION) $(NAME)/node-phantomjs:$(MAJOR)
+	docker tag $(NAME)/node-chrome-debug:$(VERSION) $(NAME)/node-chrome-debug:$(MAJOR)
+	docker tag $(NAME)/node-firefox-debug:$(VERSION) $(NAME)/node-firefox-debug:$(MAJOR)
+	docker tag $(NAME)/standalone-chrome:$(VERSION) $(NAME)/standalone-chrome:$(MAJOR)
+	docker tag $(NAME)/standalone-firefox:$(VERSION) $(NAME)/standalone-firefox:$(MAJOR)
+	docker tag $(NAME)/standalone-chrome-debug:$(VERSION) $(NAME)/standalone-chrome-debug:$(MAJOR)
+	docker tag $(NAME)/standalone-firefox-debug:$(VERSION) $(NAME)/standalone-firefox-debug:$(MAJOR)
+	docker tag $(NAME)/base:$(VERSION) $(NAME)/base:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/hub:$(VERSION) $(NAME)/hub:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/node-base:$(VERSION) $(NAME)/node-base:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/node-chrome:$(VERSION) $(NAME)/node-chrome:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/node-firefox:$(VERSION) $(NAME)/node-firefox:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/node-phantomjs:$(VERSION) $(NAME)/node-phantomjs:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/node-chrome-debug:$(VERSION) $(NAME)/node-chrome-debug:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/node-firefox-debug:$(VERSION) $(NAME)/node-firefox-debug:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/standalone-chrome:$(VERSION) $(NAME)/standalone-chrome:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/standalone-firefox:$(VERSION) $(NAME)/standalone-firefox:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/standalone-chrome-debug:$(VERSION) $(NAME)/standalone-chrome-debug:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/standalone-firefox-debug:$(VERSION) $(NAME)/standalone-firefox-debug:$(MAJOR).$(MINOR)
+	docker tag $(NAME)/base:$(VERSION) $(NAME)/base:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/hub:$(VERSION) $(NAME)/hub:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/node-base:$(VERSION) $(NAME)/node-base:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/node-chrome:$(VERSION) $(NAME)/node-chrome:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/node-firefox:$(VERSION) $(NAME)/node-firefox:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/node-phantomjs:$(VERSION) $(NAME)/node-phantomjs:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/node-chrome-debug:$(VERSION) $(NAME)/node-chrome-debug:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/node-firefox-debug:$(VERSION) $(NAME)/node-firefox-debug:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/standalone-chrome:$(VERSION) $(NAME)/standalone-chrome:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/standalone-firefox:$(VERSION) $(NAME)/standalone-firefox:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/standalone-chrome-debug:$(VERSION) $(NAME)/standalone-chrome-debug:$(MAJOR_MINOR_PATCH)
+	docker tag $(NAME)/standalone-firefox-debug:$(VERSION) $(NAME)/standalone-firefox-debug:$(MAJOR_MINOR_PATCH)
+
+release: tag_major_minor
 	@if ! docker images $(NAME)/base | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME)/base version $(VERSION) is not yet built. Please run 'make build'"; false; fi
 	@if ! docker images $(NAME)/hub | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME)/hub version $(VERSION) is not yet built. Please run 'make build'"; false; fi
 	@if ! docker images $(NAME)/node-base | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME)/node-base version $(VERSION) is not yet built. Please run 'make build'"; false; fi
 	@if ! docker images $(NAME)/node-chrome | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME)/node-chrome version $(VERSION) is not yet built. Please run 'make build'"; false; fi
 	@if ! docker images $(NAME)/node-firefox | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME)/node-firefox version $(VERSION) is not yet built. Please run 'make build'"; false; fi
+	@if ! docker images $(NAME)/node-phantomjs | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME)/node-phantomjs version $(VERSION) is not yet built. Please run 'make build'"; false; fi
 	@if ! docker images $(NAME)/node-chrome-debug | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME)/node-chrome-debug version $(VERSION) is not yet built. Please run 'make build'"; false; fi
 	@if ! docker images $(NAME)/node-firefox-debug | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME)/node-firefox-debug version $(VERSION) is not yet built. Please run 'make build'"; false; fi
 	@if ! docker images $(NAME)/standalone-chrome | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME)/standalone-chrome version $(VERSION) is not yet built. Please run 'make build'"; false; fi
@@ -114,6 +178,7 @@ release:
 	docker push $(NAME)/node-base:$(VERSION)
 	docker push $(NAME)/node-chrome:$(VERSION)
 	docker push $(NAME)/node-firefox:$(VERSION)
+	docker push $(NAME)/node-phantomjs:$(VERSION)
 	docker push $(NAME)/node-chrome-debug:$(VERSION)
 	docker push $(NAME)/node-firefox-debug:$(VERSION)
 	docker push $(NAME)/standalone-chrome:$(VERSION)
@@ -121,6 +186,45 @@ release:
 	docker push $(NAME)/standalone-firefox:$(VERSION)
 	docker push $(NAME)/standalone-chrome-debug:$(VERSION)
 	docker push $(NAME)/standalone-firefox-debug:$(VERSION)
+	docker push $(NAME)/base:$(MAJOR)
+	docker push $(NAME)/hub:$(MAJOR)
+	docker push $(NAME)/node-base:$(MAJOR)
+	docker push $(NAME)/node-chrome:$(MAJOR)
+	docker push $(NAME)/node-firefox:$(MAJOR)
+	docker push $(NAME)/node-phantomjs:$(MAJOR)
+	docker push $(NAME)/node-chrome-debug:$(MAJOR)
+	docker push $(NAME)/node-firefox-debug:$(MAJOR)
+	docker push $(NAME)/standalone-chrome:$(MAJOR)
+	docker push $(NAME)/standalone-chrome:$(MAJOR)
+	docker push $(NAME)/standalone-firefox:$(MAJOR)
+	docker push $(NAME)/standalone-chrome-debug:$(MAJOR)
+	docker push $(NAME)/standalone-firefox-debug:$(MAJOR)
+	docker push $(NAME)/base:$(MAJOR).$(MINOR)
+	docker push $(NAME)/hub:$(MAJOR).$(MINOR)
+	docker push $(NAME)/node-base:$(MAJOR).$(MINOR)
+	docker push $(NAME)/node-chrome:$(MAJOR).$(MINOR)
+	docker push $(NAME)/node-firefox:$(MAJOR).$(MINOR)
+	docker push $(NAME)/node-phantomjs:$(MAJOR).$(MINOR)
+	docker push $(NAME)/node-chrome-debug:$(MAJOR).$(MINOR)
+	docker push $(NAME)/node-firefox-debug:$(MAJOR).$(MINOR)
+	docker push $(NAME)/standalone-chrome:$(MAJOR).$(MINOR)
+	docker push $(NAME)/standalone-chrome:$(MAJOR).$(MINOR)
+	docker push $(NAME)/standalone-firefox:$(MAJOR).$(MINOR)
+	docker push $(NAME)/standalone-chrome-debug:$(MAJOR).$(MINOR)
+	docker push $(NAME)/standalone-firefox-debug:$(MAJOR).$(MINOR)
+	docker push $(NAME)/base:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/hub:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/node-base:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/node-chrome:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/node-firefox:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/node-phantomjs:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/node-chrome-debug:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/node-firefox-debug:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/standalone-chrome:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/standalone-chrome:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/standalone-firefox:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/standalone-chrome-debug:$(MAJOR_MINOR_PATCH)
+	docker push $(NAME)/standalone-firefox-debug:$(MAJOR_MINOR_PATCH)
 
 test:
 	./test.sh
@@ -137,11 +241,13 @@ test:
 	ci \
 	firefox \
 	firefox_debug \
+	phantomjs \
 	generate_all \
 	generate_hub \
 	generate_nodebase \
 	generate_chrome \
 	generate_firefox \
+	generate_phantomjs \
 	generate_chrome_debug \
 	generate_firefox_debug \
 	generate_standalone_chrome \
