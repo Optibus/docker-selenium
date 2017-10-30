@@ -2,7 +2,7 @@
 # NOTE: DO *NOT* EDIT THIS FILE.  IT IS GENERATED.
 # PLEASE UPDATE Dockerfile.txt INSTEAD OF THIS FILE
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-FROM selenium/node-firefox-debug:3.6.0-copper
+FROM selenium/node-chrome-debug:3.6.0-copper
 LABEL authors=SeleniumHQ
 
 USER seluser
